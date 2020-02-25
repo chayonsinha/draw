@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'package:video_player/video_player.dart';
 
 class Draw extends StatefulWidget {
   @override
@@ -10,6 +11,8 @@ class Draw extends StatefulWidget {
 }
 
 class _DrawState extends State<Draw> {
+  VideoPlayerController _controller;
+
   Color selectedColor = Colors.black;
   Color pickerColor = Colors.black;
   double strokeWidth = 3.0;
@@ -25,6 +28,17 @@ class _DrawState extends State<Draw> {
     Colors.amber,
     Colors.black
   ];
+  @override
+  void initState() {
+    super.initState();
+    _controller = VideoPlayerController.network(
+        'http://www.sample-videos.com/video123/mp4/720/big_buck_bunny_720p_20mb.mp4')
+      ..initialize().then((_) {
+        // Ensure the first frame is shown after the video is initialized, even before the play button has been pressed.
+        setState(() {});
+      });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -108,41 +122,58 @@ class _DrawState extends State<Draw> {
               ),
             )),
       ),
-      body: GestureDetector(
-        onPanUpdate: (details) {
-          setState(() {
-            RenderBox renderBox = context.findRenderObject();
-            points.add(DrawingPoints(
-                points: renderBox.globalToLocal(details.globalPosition),
-                paint: Paint()
-                  ..strokeCap = strokeCap
-                  ..isAntiAlias = true
-                  ..color = selectedColor.withOpacity(opacity)
-                  ..strokeWidth = strokeWidth));
-          });
-        },
-        onPanStart: (details) {
-          setState(() {
-            RenderBox renderBox = context.findRenderObject();
-            points.add(DrawingPoints(
-                points: renderBox.globalToLocal(details.globalPosition),
-                paint: Paint()
-                  ..strokeCap = strokeCap
-                  ..isAntiAlias = true
-                  ..color = selectedColor.withOpacity(opacity)
-                  ..strokeWidth = strokeWidth));
-          });
-        },
-        onPanEnd: (details) {
-          setState(() {
-            points.add(null);
-          });
-        },
-        child: CustomPaint(
-          size: Size.infinite,
-          painter: DrawingPainter(
-            pointsList: points,
-          ),
+      body: Container(
+        height: MediaQuery.of(context).size.height,
+        width: MediaQuery.of(context).size.width,
+        child: Stack(
+          alignment: Alignment.topCenter,
+          children: <Widget>[
+            _controller.value.initialized
+                ? AspectRatio(
+                    aspectRatio: _controller.value.aspectRatio,
+                    child: VideoPlayer(_controller),
+                  )
+                : Container(),
+            GestureDetector(
+              onPanUpdate: (details) {
+                setState(() {
+                  RenderBox renderBox = context.findRenderObject();
+                  points.add(DrawingPoints(
+                      points: renderBox.globalToLocal(details.globalPosition),
+                      paint: Paint()
+                        ..strokeCap = strokeCap
+                        ..isAntiAlias = true
+                        ..color = selectedColor.withOpacity(opacity)
+                        ..strokeWidth = strokeWidth));
+                });
+              },
+              onPanStart: (details) {
+                setState(() {
+                  RenderBox renderBox = context.findRenderObject();
+                  points.add(DrawingPoints(
+                      points: renderBox.globalToLocal(details.globalPosition),
+                      paint: Paint()
+                        ..strokeCap = strokeCap
+                        ..isAntiAlias = true
+                        ..color = selectedColor.withOpacity(opacity)
+                        ..strokeWidth = strokeWidth));
+                });
+              },
+              onPanEnd: (details) {
+                setState(() {
+                  points.add(null);
+                });
+              },
+              child: CustomPaint(
+                size: Size.infinite,
+                isComplex: true,
+
+                painter: DrawingPainter(
+                  pointsList: points,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
